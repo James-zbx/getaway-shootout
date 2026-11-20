@@ -1,0 +1,7 @@
+node_modules/
+.qoder/
+functions/_qoder/
+*.qoder.site
+.env*
+.DS_Store
+Thumbs.db

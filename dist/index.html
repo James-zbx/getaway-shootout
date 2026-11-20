@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#101f2e">
+  <meta name="description" content="弹跳突围：两名真人与两名人机同场的原创物理竞速游戏，支持本地单人、双人和在线双人。">
+  <title>弹跳突围 · Bounce Breakout</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="弹跳突围首页">
+        <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M7 27 17 8h8l-4 9h12L21 33h-8l5-11H7Z" fill="currentColor"/></svg>
+        <span>弹跳突围</span>
+        <small>BOUNCE BREAKOUT</small>
+      </a>
+      <div class="top-actions">
+        <span id="modeBadge" class="mode-badge">演示模式</span>
+        <button id="muteButton" class="icon-button" type="button" aria-label="关闭声音" title="声音">声音 开</button>
+        <button id="fullscreenButton" class="icon-button" type="button" aria-label="全屏游戏" title="全屏">全屏</button>
+      </div>
+    </header>
+
+    <main id="gameFrame" class="game-frame">
+      <canvas id="gameCanvas" width="1280" height="720" aria-label="弹跳突围游戏画面：四名角色通过蓄力跳跃竞速"></canvas>
+
+      <section id="mainMenu" class="overlay menu-overlay">
+        <div class="menu-card">
+          <p class="eyebrow"><span></span> 原创四人物理竞速</p>
+          <h1>弹跳<br><em>突围</em></h1>
+          <p class="tagline">没有走路键。调整角度，松开起跳，<br>比所有人更早抵达撤离点。</p>
+          <div class="mode-buttons">
+            <button class="primary-button" type="button" data-start="single"><span>单人游戏</span><small>你 + 3 名人机</small></button>
+            <button class="secondary-button" type="button" data-start="double"><span>本地双人</span><small>2 人 + 2 名人机 · 共用键盘</small></button>
+            <button id="onlineButton" class="secondary-button" type="button"><span>在线双人</span><small>2 人 + 2 名人机 · 各自键盘</small></button>
+          </div>
+          <div class="quick-controls">
+            <span><kbd>W</kbd> 左偏转</span><span><kbd>E</kbd> 右偏转</span><span><kbd>R</kbd> 武器</span>
+            <b>按住蓄力 · 松开跳跃</b>
+          </div>
+        </div>
+      </section>
+
+      <section id="onlinePanel" class="overlay panel-overlay hidden" aria-labelledby="onlineTitle">
+        <div class="dialog-card">
+          <p class="eyebrow"><span></span> 点对点联机</p>
+          <h2 id="onlineTitle">在线双人</h2>
+          <p class="dialog-copy">一名玩家创建房间，另一名输入六位房间码。双方都用 W / E / R，另外两名角色由人机控制。</p>
+          <button id="createRoomButton" class="primary-button compact" type="button">创建房间</button>
+          <div class="divider"><span>或者加入朋友</span></div>
+          <label class="field-label" for="roomInput">房间码</label>
+          <div class="join-row">
+            <input id="roomInput" type="text" inputmode="text" autocomplete="off" maxlength="6" placeholder="例如 K7M2QX" aria-describedby="onlineStatus">
+            <button id="joinRoomButton" class="accent-button" type="button">加入</button>
+          </div>
+          <p id="onlineStatus" class="status-text" aria-live="polite"></p>
+          <button class="text-button" type="button" data-back>返回主菜单</button>
+          <p class="privacy-note">联机采用浏览器点对点连接。少数受限制的网络可能无法建立连接。</p>
+        </div>
+      </section>
+
+      <section id="lobbyPanel" class="overlay panel-overlay hidden" aria-labelledby="lobbyTitle">
+        <div class="dialog-card lobby-card">
+          <div class="loading-orbit" aria-hidden="true"><span></span><span></span></div>
+          <h2 id="lobbyTitle">等待另一名玩家</h2>
+          <p id="lobbyHint" class="dialog-copy">把房间码或邀请链接发给朋友。</p>
+          <button id="roomCodeButton" class="room-code" type="button" title="复制房间码">------</button>
+          <button id="copyInviteButton" class="secondary-button compact" type="button">复制邀请链接</button>
+          <p id="lobbyStatus" class="status-text" aria-live="polite">正在准备连接…</p>
+          <button id="cancelLobbyButton" class="text-button" type="button">取消并返回</button>
+        </div>
+      </section>
+
+      <section id="pausePanel" class="overlay panel-overlay hidden" aria-labelledby="pauseTitle">
+        <div class="dialog-card small-card">
+          <p class="eyebrow"><span></span> 已暂停</p>
+          <h2 id="pauseTitle">喘口气</h2>
+          <button id="resumeButton" class="primary-button compact" type="button">继续比赛</button>
+          <button id="restartButton" class="secondary-button compact" type="button">重新开始</button>
+          <button class="text-button" type="button" data-menu>返回主菜单</button>
+        </div>
+      </section>
+
+      <section id="resultPanel" class="overlay panel-overlay hidden" aria-labelledby="resultTitle">
+        <div class="dialog-card small-card">
+          <p class="eyebrow"><span></span> 比赛结束</p>
+          <h2 id="resultTitle">胜利！</h2>
+          <p id="resultScores" class="result-scores"></p>
+          <button id="playAgainButton" class="primary-button compact" type="button">再来一局</button>
+          <button class="text-button" type="button" data-menu>返回主菜单</button>
+        </div>
+      </section>
+
+      <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+    </main>
+
+    <footer class="control-strip">
+      <div><span class="player-dot p1"></span><strong>玩家 1</strong><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd><small>在线双方均用此键位</small></div>
+      <div id="p2Controls"><span class="player-dot p2"></span><strong>本地玩家 2</strong><kbd>I</kbd><kbd>O</kbd><kbd>P</kbd></div>
+      <div class="objective"><strong>目标</strong><span>率先抵达撤离点，先赢 5 轮获胜</span><kbd>Esc</kbd><small>暂停本地游戏</small></div>
+    </footer>
+  </div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
