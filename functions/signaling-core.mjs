@@ -285,6 +285,11 @@ export function createSignalingApplication({
     if (path === null) fail('not_found', 404);
 
     let match;
+    if (path === '/api/health') {
+      if (request.method !== 'GET') fail('method_not_allowed', 405);
+      return json({ ok: true });
+    }
+
     if (path === '/api/rooms') {
       if (request.method !== 'POST') fail('method_not_allowed', 405);
       assertEmptyCommand(await readJson(request));

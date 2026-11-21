@@ -1,8 +1,14 @@
-import { MAPS, WIN_SCORE } from './engine.js';
+import { MAPS, WIN_SCORE, WEAPONS, YARD, MAX_HP } from './engine.js';
 
 const WIDTH = 1280;
 const HEIGHT = 720;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+const WEAPON_LABELS = {
+  knife: '飞刀', pistol: '手枪', smg: '冲锋枪', shotgun: '霰弹枪', bomb: '定时炸弹',
+  rocket: '火箭筒', akm: 'AKM', swap: '交换枪', shield: '无敌盾', medkit: '医疗包',
+  crate: '炸药箱', vehicle: '车辆'
+};
 
 function roundedRect(ctx, x, y, width, height, radius) {
   const r = Math.min(radius, width / 2, height / 2);
@@ -18,33 +24,179 @@ function text(ctx, value, x, y, size = 20, color = '#fff', align = 'left', weigh
   ctx.fillText(value, x, y);
 }
 
+function drawWeaponIcon(ctx, type, x, y, size, color = '#f4f8fb') {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(size / 32, size / 32);
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  if (type === 'knife') {
+    ctx.beginPath();
+    ctx.moveTo(-12, 10);
+    ctx.lineTo(10, -10);
+    ctx.lineTo(13, -13);
+    ctx.lineTo(11, -7);
+    ctx.lineTo(-7, 12);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-13, 13);
+    ctx.lineTo(-7, 7);
+    ctx.stroke();
+  } else if (type === 'pistol') {
+    ctx.beginPath();
+    ctx.moveTo(-13, -7);
+    ctx.lineTo(10, -7);
+    ctx.lineTo(10, -1);
+    ctx.lineTo(-1, -1);
+    ctx.lineTo(-4, 11);
+    ctx.lineTo(-11, 11);
+    ctx.lineTo(-8, -1);
+    ctx.lineTo(-13, -1);
+    ctx.closePath();
+    ctx.fill();
+  } else if (type === 'smg') {
+    ctx.fillRect(-14, -7, 27, 7);
+    ctx.fillRect(-6, 0, 5, 12);
+    ctx.fillRect(7, -10, 8, 4);
+    ctx.fillRect(-14, -2, 6, 5);
+  } else if (type === 'shotgun') {
+    ctx.fillRect(-15, -7, 30, 4);
+    ctx.fillRect(-15, -1, 30, 4);
+    ctx.beginPath();
+    ctx.moveTo(-15, 3);
+    ctx.lineTo(-6, 12);
+    ctx.lineTo(-1, 12);
+    ctx.lineTo(-8, 3);
+    ctx.fill();
+  } else if (type === 'bomb') {
+    ctx.beginPath();
+    ctx.arc(0, 3, 11, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(4, -7);
+    ctx.quadraticCurveTo(13, -14, 10, -22);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(10, -23, 3, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffb84d';
+    ctx.fill();
+  } else if (type === 'rocket') {
+    ctx.beginPath();
+    ctx.moveTo(-14, 0);
+    ctx.lineTo(4, -7);
+    ctx.lineTo(14, 0);
+    ctx.lineTo(4, 7);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#ff6b63';
+    ctx.beginPath();
+    ctx.moveTo(-14, -5);
+    ctx.lineTo(-20, 0);
+    ctx.lineTo(-14, 5);
+    ctx.fill();
+  } else if (type === 'akm') {
+    ctx.fillRect(-16, -6, 30, 6);
+    ctx.fillRect(-18, -1, 13, 5);
+    ctx.beginPath();
+    ctx.moveTo(-4, 1);
+    ctx.quadraticCurveTo(-1, 12, 7, 15);
+    ctx.lineTo(12, 13);
+    ctx.quadraticCurveTo(4, 8, 3, 1);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillRect(7, -10, 10, 5);
+    ctx.fillRect(15, -13, 3, 8);
+  } else if (type === 'swap') {
+    ctx.beginPath();
+    ctx.moveTo(-12, -6);
+    ctx.lineTo(9, -6);
+    ctx.lineTo(4, -12);
+    ctx.moveTo(12, 6);
+    ctx.lineTo(-9, 6);
+    ctx.lineTo(-4, 12);
+    ctx.stroke();
+  } else if (type === 'shield') {
+    ctx.beginPath();
+    ctx.moveTo(0, -14);
+    ctx.lineTo(13, -8);
+    ctx.lineTo(10, 9);
+    ctx.lineTo(0, 16);
+    ctx.lineTo(-10, 9);
+    ctx.lineTo(-13, -8);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-5, 0);
+    ctx.lineTo(0, 6);
+    ctx.lineTo(7, -7);
+    ctx.stroke();
+  } else if (type === 'medkit') {
+    ctx.fillRect(-13, -10, 26, 20);
+    ctx.fillStyle = '#ff6b63';
+    ctx.fillRect(-3, -7, 6, 14);
+    ctx.fillRect(-8, -1, 16, 6);
+  } else if (type === 'crate') {
+    ctx.strokeRect(-12, -12, 24, 24);
+    ctx.beginPath();
+    ctx.moveTo(-12, -12);
+    ctx.lineTo(12, 12);
+    ctx.moveTo(12, -12);
+    ctx.lineTo(-12, 12);
+    ctx.stroke();
+  } else if (type === 'vehicle') {
+    ctx.beginPath();
+    ctx.moveTo(-14, 6);
+    ctx.lineTo(-11, -4);
+    ctx.lineTo(4, -4);
+    ctx.lineTo(9, 2);
+    ctx.lineTo(14, 3);
+    ctx.lineTo(14, 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(-7, 8, 4, 0, Math.PI * 2);
+    ctx.arc(8, 8, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 export class GameRenderer {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.camera = { x: 480, zoom: 1, shake: 0 };
     this.particles = [];
+    this.effects = [];
     this.lastTime = performance.now();
   }
 
   pushEvents(events, state) {
     for (const event of events) {
       const color = event.player >= 0 ? state.players[event.player]?.color || '#fff' : '#fff';
-      if (event.type === 'hit') this.camera.shake = event.weapon === 'launcher' ? 15 : 8;
-      const counts = { jump: 8, land: 5, shot: 8, hit: 22, pickup: 16, respawn: 14, roundOver: 45 };
+      if (event.type === 'hit') this.camera.shake = Math.max(this.camera.shake, event.amount > 100 ? 16 : 7);
+      if (event.type === 'explosion') {
+        this.camera.shake = Math.max(this.camera.shake, 24);
+        this.effects.push({ x: event.x, y: event.y, radius: event.radius, age: 0, life: 0.45, weapon: event.weapon });
+      }
+      const counts = { jump: 8, land: 5, shot: 6, hit: 18, pickup: 16, respawn: 14, death: 30, heal: 20, shield: 20, swap: 18, explosion: 42, roundOver: 45 };
       const count = counts[event.type] || 0;
       for (let index = 0; index < count; index += 1) {
         const angle = Math.random() * Math.PI * 2;
-        const speed = 40 + Math.random() * (event.type === 'hit' ? 320 : 170);
+        const speed = 40 + Math.random() * (event.type === 'explosion' ? 420 : event.type === 'hit' ? 320 : 170);
         this.particles.push({
           x: event.x || 0,
-          y: (event.y || 0) - (event.type === 'jump' || event.type === 'land' ? 4 : 35),
+          y: (event.y || 0) - (event.type === 'jump' || event.type === 'land' ? 4 : 0),
           vx: Math.cos(angle) * speed,
           vy: Math.sin(angle) * speed - 60,
           life: 0.35 + Math.random() * 0.55,
           maxLife: 0.9,
           size: 2 + Math.random() * 6,
-          color: event.type === 'pickup' ? '#f7c948' : color
+          color: event.type === 'heal' ? '#72ef9a' : event.type === 'shield' ? '#79b9ff' : event.type === 'pickup' ? '#f7c948' : event.type === 'explosion' ? '#ffb84d' : color
         });
       }
     }
@@ -58,6 +210,11 @@ export class GameRenderer {
       particle.y += particle.vy * dt;
       particle.vy += 500 * dt;
       if (particle.life <= 0) this.particles.splice(index, 1);
+    }
+    for (let index = this.effects.length - 1; index >= 0; index -= 1) {
+      const effect = this.effects[index];
+      effect.age += dt;
+      if (effect.age > effect.life) this.effects.splice(index, 1);
     }
   }
 
@@ -188,147 +345,215 @@ export class GameRenderer {
     const y = pickup.y + Math.sin(now / 280 + pickup.id) * 7;
     ctx.save();
     ctx.translate(pickup.x, y);
-    ctx.shadowColor = pickup.type === 'launcher' ? '#ff9d4d' : '#b7ff5c';
+    ctx.shadowColor = pickup.type === 'medkit' ? '#72ef9a' : pickup.type === 'shield' ? '#79b9ff' : '#f7c948';
     ctx.shadowBlur = 20;
     ctx.fillStyle = '#152b3c';
     ctx.beginPath();
     for (let side = 0; side < 6; side += 1) {
       const angle = Math.PI / 3 * side - Math.PI / 2;
-      const x = Math.cos(angle) * 24;
-      const py = Math.sin(angle) * 24;
+      const x = Math.cos(angle) * 26;
+      const py = Math.sin(angle) * 26;
       if (side === 0) ctx.moveTo(x, py); else ctx.lineTo(x, py);
     }
     ctx.closePath();
     ctx.fill();
     ctx.shadowBlur = 0;
-    ctx.strokeStyle = pickup.type === 'launcher' ? '#ff9d4d' : '#b7ff5c';
+    ctx.strokeStyle = pickup.type === 'medkit' ? '#72ef9a' : pickup.type === 'shield' ? '#79b9ff' : '#b7ff5c';
     ctx.lineWidth = 3;
     ctx.stroke();
-    if (pickup.type === 'launcher') {
-      ctx.fillStyle = '#ff9d4d';
-      ctx.fillRect(-12, -5, 22, 10);
-      ctx.beginPath();
-      ctx.moveTo(10, -8);
-      ctx.lineTo(18, 0);
-      ctx.lineTo(10, 8);
-      ctx.fill();
-    } else {
-      ctx.strokeStyle = '#b7ff5c';
-      ctx.lineWidth = 5;
-      ctx.beginPath();
-      ctx.moveTo(-11, 6);
-      ctx.lineTo(1, -7);
-      ctx.lineTo(12, 6);
-      ctx.stroke();
-    }
+    drawWeaponIcon(ctx, pickup.type, 0, 0, 28, ctx.strokeStyle);
+    ctx.restore();
+  }
+
+  drawCrate(ctx, crate) {
+    if (crate.dead) return;
+    ctx.save();
+    ctx.translate(crate.x, crate.y);
+    ctx.fillStyle = '#6b4b2a';
+    ctx.strokeStyle = '#2d1d10';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.roundRect(-22, -15, 44, 30, 4);
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = '#ffca55';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-16, -10);
+    ctx.lineTo(16, 10);
+    ctx.moveTo(16, -10);
+    ctx.lineTo(-16, 10);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  drawVehicle(ctx, vehicle) {
+    if (vehicle.dead) return;
+    ctx.save();
+    ctx.translate(vehicle.x, vehicle.y);
+    ctx.fillStyle = '#355e75';
+    ctx.beginPath();
+    ctx.roundRect(-55, -32, 110, 32, 8);
+    ctx.fill();
+    ctx.fillStyle = '#76b8d5';
+    ctx.beginPath();
+    ctx.moveTo(-28, -32);
+    ctx.lineTo(-18, -52);
+    ctx.lineTo(18, -52);
+    ctx.lineTo(28, -32);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#182635';
+    ctx.beginPath();
+    ctx.arc(-30, 3, 13, 0, Math.PI * 2);
+    ctx.arc(32, 3, 13, 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
   }
 
   drawPlayer(ctx, player, isFocused, now) {
+    if (player.dead) ctx.globalAlpha = 0.35;
     ctx.save();
-    ctx.translate(player.x, player.y - 42);
+    ctx.translate(player.x, player.y - 50);
     ctx.rotate(player.angle);
-    if (player.stun > 0 && Math.floor(now / 90) % 2 === 0) ctx.globalAlpha = 0.55;
+    if (player.stun > 0 && !player.dead && Math.floor(now / 90) % 2 === 0) ctx.globalAlpha *= 0.55;
     ctx.strokeStyle = '#152331';
-    ctx.lineWidth = 10;
+    ctx.lineWidth = 11;
     ctx.lineCap = 'round';
     const legSwing = clamp(player.vx / 700, -0.5, 0.5);
     ctx.beginPath();
-    ctx.moveTo(-7, 14);
-    ctx.lineTo(-12 - legSwing * 12, 39);
-    ctx.moveTo(7, 14);
-    ctx.lineTo(12 + legSwing * 12, 39);
+    ctx.moveTo(-8, 17);
+    ctx.lineTo(-14 - legSwing * 14, 47);
+    ctx.moveTo(8, 17);
+    ctx.lineTo(14 + legSwing * 14, 47);
     ctx.stroke();
     ctx.fillStyle = player.color;
-    roundedRect(ctx, -18, -22, 36, 46, 13);
+    roundedRect(ctx, -21, -25, 42, 52, 15);
     ctx.fill();
     ctx.strokeStyle = player.accent;
-    ctx.lineWidth = 7;
+    ctx.lineWidth = 8;
     ctx.beginPath();
-    ctx.moveTo(-13, -10);
-    ctx.lineTo(-27, 5 + legSwing * 10);
-    ctx.moveTo(13, -10);
-    ctx.lineTo(27, 3 - legSwing * 10);
+    ctx.moveTo(-15, -12);
+    ctx.lineTo(-31, 6 + legSwing * 12);
+    ctx.moveTo(15, -12);
+    ctx.lineTo(31, 4 - legSwing * 12);
     ctx.stroke();
     ctx.fillStyle = player.accent;
     ctx.beginPath();
-    ctx.arc(0, -38, 19, 0, Math.PI * 2);
+    ctx.arc(0, -45, 22, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#152331';
-    ctx.fillRect(player.facing > 0 ? 2 : -14, -43, 12, 6);
+    ctx.fillRect(player.facing > 0 ? 2 : -16, -51, 14, 7);
     ctx.fillStyle = player.color;
     ctx.beginPath();
-    ctx.arc(-7, -52, 8, Math.PI, Math.PI * 2);
-    ctx.arc(7, -52, 8, Math.PI, Math.PI * 2);
+    ctx.arc(-8, -61, 9, Math.PI, Math.PI * 2);
+    ctx.arc(8, -61, 9, Math.PI, Math.PI * 2);
     ctx.fill();
     if (player.weapon) {
-      ctx.fillStyle = player.weapon === 'launcher' ? '#ff9d4d' : '#b7ff5c';
+      const aim = player.aimAngle ?? (player.facing > 0 ? 0 : Math.PI);
       ctx.save();
-      ctx.scale(player.facing, 1);
-      ctx.fillRect(17, -10, player.weapon === 'launcher' ? 37 : 29, player.weapon === 'launcher' ? 13 : 8);
-      ctx.fillStyle = '#152331';
-      ctx.fillRect(19, -4, 8, 13);
+      ctx.translate(14, -8);
+      ctx.rotate(aim - player.angle);
+      drawWeaponIcon(ctx, player.weapon, 18, 0, 34, player.weapon === 'shotgun' ? '#d8e8f2' : '#b7ff5c');
       ctx.restore();
     }
     ctx.restore();
+    if (player.shield > 0) {
+      ctx.strokeStyle = '#79b9ff';
+      ctx.lineWidth = 4;
+      ctx.globalAlpha = 0.55 + Math.sin(now / 90) * 0.15;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y - 52, 62, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
     const label = `${player.id < 2 ? `P${player.id + 1}` : 'CPU'} · ${player.name}`;
-    text(ctx, label, player.x, player.y - 112, 15, '#142434', 'center', 900);
+    text(ctx, label, player.x, player.y - 132, 15, '#142434', 'center', 900);
+    ctx.fillStyle = 'rgba(20,36,52,.72)';
+    ctx.fillRect(player.x - 32, player.y - 122, 64, 6);
+    ctx.fillStyle = player.hp > 55 ? '#72ef9a' : player.hp > 25 ? '#f7c948' : '#ff6b63';
+    ctx.fillRect(player.x - 32, player.y - 122, 64 * (player.hp / MAX_HP), 6);
     if (isFocused) {
       ctx.fillStyle = '#142434';
       ctx.beginPath();
-      ctx.moveTo(player.x, player.y - 96);
-      ctx.lineTo(player.x - 7, player.y - 106);
-      ctx.lineTo(player.x + 7, player.y - 106);
+      ctx.moveTo(player.x, player.y - 115);
+      ctx.lineTo(player.x - 7, player.y - 125);
+      ctx.lineTo(player.x + 7, player.y - 125);
       ctx.fill();
     }
-    if (player.chargeDir !== 0) {
+    if (player.dead) {
+      text(ctx, `复活 ${Math.max(0, player.respawnTimer).toFixed(1)}`, player.x, player.y - 90, 18, '#142434', 'center', 900);
+    } else if (player.chargeDir !== 0) {
       const power = clamp(player.charge / 1.1, 0, 1);
       const degrees = Math.round(Math.abs(player.angle) * 180 / Math.PI);
       ctx.fillStyle = 'rgba(20,36,52,.82)';
-      roundedRect(ctx, player.x - 48, player.y - 151, 96, 29, 8);
+      roundedRect(ctx, player.x - 48, player.y - 178, 96, 29, 8);
       ctx.fill();
       ctx.fillStyle = '#263e50';
-      ctx.fillRect(player.x - 39, player.y - 140, 59, 7);
+      ctx.fillRect(player.x - 39, player.y - 167, 59, 7);
       ctx.fillStyle = power > 0.82 ? '#ff9d4d' : '#b7ff5c';
-      ctx.fillRect(player.x - 39, player.y - 140, 59 * power, 7);
-      text(ctx, `${degrees}°`, player.x + 33, player.y - 137, 13, '#fff', 'center', 900);
+      ctx.fillRect(player.x - 39, player.y - 167, 59 * power, 7);
+      text(ctx, `${degrees}°`, player.x + 33, player.y - 164, 13, '#fff', 'center', 900);
       ctx.strokeStyle = '#142434';
       ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.moveTo(player.x, player.y - 76);
-      ctx.lineTo(player.x + player.chargeDir * (30 + power * 35), player.y - 86 - power * 25);
+      ctx.moveTo(player.x, player.y - 103);
+      ctx.lineTo(player.x + player.chargeDir * (30 + power * 35), player.y - 113 - power * 25);
       ctx.stroke();
     }
+    ctx.globalAlpha = 1;
   }
 
   drawProjectile(ctx, projectile) {
+    const angle = Math.atan2(projectile.vy, projectile.vx);
     ctx.save();
     ctx.translate(projectile.x, projectile.y);
-    if (projectile.type === 'launcher') {
-      ctx.rotate(Math.atan2(projectile.vy, projectile.vx));
-      ctx.fillStyle = '#ff9d4d';
-      ctx.fillRect(-15, -7, 26, 14);
-      ctx.fillStyle = '#fff1cf';
+    ctx.rotate(angle);
+    if (projectile.weapon === 'knife') drawWeaponIcon(ctx, 'knife', 0, 0, 22, '#dcecff');
+    else if (projectile.weapon === 'shotgun') {
+      ctx.fillStyle = '#ffe2a8';
+      ctx.fillRect(-7, -2, 14, 4);
+    } else if (projectile.weapon === 'swap') {
+      ctx.strokeStyle = '#46d9e8';
+      ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.moveTo(11, -8);
-      ctx.lineTo(22, 0);
-      ctx.lineTo(11, 8);
-      ctx.fill();
-      ctx.fillStyle = 'rgba(255,107,99,.65)';
+      ctx.moveTo(-11, -5);
+      ctx.lineTo(8, -5);
+      ctx.moveTo(11, 5);
+      ctx.lineTo(-8, 5);
+      ctx.stroke();
+    } else if (projectile.weapon === 'bomb') {
+      ctx.fillStyle = '#ff6b63';
       ctx.beginPath();
-      ctx.moveTo(-14, -6);
-      ctx.lineTo(-31, 0);
-      ctx.lineTo(-14, 6);
+      ctx.arc(0, 0, projectile.radius, 0, Math.PI * 2);
       ctx.fill();
-    } else {
-      ctx.shadowColor = '#b7ff5c';
+    } else if (projectile.weapon === 'akm') {
+      ctx.shadowColor = '#ffca55';
       ctx.shadowBlur = 18;
+      ctx.fillStyle = '#fff2bd';
+      ctx.fillRect(-12, -3, 24, 6);
+    } else if (projectile.weapon === 'rocket') {
+      drawWeaponIcon(ctx, 'rocket', 0, 0, 24, '#ffca55');
+    } else {
+      ctx.shadowColor = projectile.weapon === 'smg' ? '#46d9e8' : '#b7ff5c';
+      ctx.shadowBlur = 14;
       ctx.fillStyle = '#eaffc9';
-      ctx.beginPath();
-      ctx.arc(0, 0, 8, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fillRect(-8, -3, 16, 6);
     }
     ctx.restore();
+  }
+
+  drawEffects(ctx) {
+    for (const effect of this.effects) {
+      const progress = effect.age / effect.life;
+      ctx.strokeStyle = effect.weapon === 'vehicle' ? '#ffca55' : '#ff9d4d';
+      ctx.globalAlpha = 1 - progress;
+      ctx.lineWidth = 8 * (1 - progress);
+      ctx.beginPath();
+      ctx.arc(effect.x, effect.y, effect.radius * (0.25 + progress * 0.75), 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
   }
 
   drawParticles(ctx) {
@@ -344,10 +569,10 @@ export class GameRenderer {
     for (const player of state.players) {
       const x = 18 + player.id * 184;
       ctx.fillStyle = 'rgba(14,29,43,.88)';
-      roundedRect(ctx, x, 16, 170, 64, 13);
+      roundedRect(ctx, x, 16, 170, 86, 13);
       ctx.fill();
       ctx.fillStyle = player.color;
-      roundedRect(ctx, x + 8, 24, 7, 48, 3);
+      roundedRect(ctx, x + 8, 24, 7, 70, 3);
       ctx.fill();
       text(ctx, `${player.id < 2 ? `P${player.id + 1}` : 'CPU'} ${player.name}`, x + 25, 34, 15, '#fff', 'left', 900);
       for (let score = 0; score < WIN_SCORE; score += 1) {
@@ -355,30 +580,45 @@ export class GameRenderer {
         roundedRect(ctx, x + 25 + score * 25, 53, 19, 12, 3);
         ctx.fill();
       }
+      ctx.fillStyle = '#263e50';
+      ctx.fillRect(x + 25, 76, 132, 10);
+      ctx.fillStyle = player.hp > 55 ? '#72ef9a' : player.hp > 25 ? '#f7c948' : '#ff6b63';
+      ctx.fillRect(x + 25, 76, 132 * (player.hp / MAX_HP), 10);
+      if (player.shield > 0) {
+        ctx.fillStyle = '#79b9ff';
+        ctx.fillRect(x + 150, 76, 12, 10);
+        text(ctx, player.shield.toFixed(1), x + 145, 81, 10, '#fff', 'right', 900);
+      }
     }
     text(ctx, `第 ${state.round} 轮 · ${map.name}`, 1258, 28, 17, '#142434', 'right', 900);
     const startX = 835;
     const width = 420;
     ctx.fillStyle = 'rgba(20,36,52,.22)';
-    roundedRect(ctx, startX, 49, width, 12, 6);
+    roundedRect(ctx, startX, 61, width, 12, 6);
     ctx.fill();
     for (const player of state.players) {
       const progress = clamp(player.x / map.finish, 0, 1);
       ctx.fillStyle = player.color;
       ctx.beginPath();
-      ctx.arc(startX + progress * width, 55, player.id === focusIds[0] ? 8 : 6, 0, Math.PI * 2);
+      ctx.arc(startX + progress * width, 67, player.id === focusIds[0] ? 8 : 6, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = '#fff';
       ctx.lineWidth = 2;
       ctx.stroke();
     }
     const focused = state.players[focusIds[0]] || state.players[0];
-    ctx.fillStyle = 'rgba(14,29,43,.86)';
-    roundedRect(ctx, 18, 637, 440, 64, 14);
+    ctx.fillStyle = 'rgba(14,29,43,.88)';
+    roundedRect(ctx, 18, 610, 470, 90, 14);
     ctx.fill();
-    text(ctx, 'W / E  蓄力偏转 · 松开跳跃', 34, 657, 16, '#eaf4f7', 'left', 700);
-    const weaponName = focused.weapon === 'launcher' ? `震荡炮 × ${focused.ammo}` : focused.weapon === 'pulse' ? `脉冲枪 × ${focused.ammo}` : '尚未拾取武器';
-    text(ctx, `R  ${weaponName}`, 34, 683, 17, focused.weapon ? '#b7ff5c' : '#8fa8b7', 'left', 900);
+    text(ctx, 'W / E  蓄力偏转 · 松开跳跃', 34, 634, 16, '#eaf4f7', 'left', 700);
+    text(ctx, 'R  使用武器', 34, 660, 16, '#eaf4f7', 'left', 700);
+    if (focused.weapon) {
+      drawWeaponIcon(ctx, focused.weapon, 418, 655, 50, '#b7ff5c');
+      text(ctx, WEAPON_LABELS[focused.weapon] || focused.weapon, 388, 625, 15, '#fff', 'right', 900);
+      text(ctx, `× ${focused.ammo}`, 388, 678, 16, '#f7c948', 'right', 900);
+    } else {
+      text(ctx, '尚未拾取武器', 458, 655, 16, '#8fa8b7', 'right', 700);
+    }
   }
 
   drawPhase(ctx, state, map) {
@@ -402,6 +642,30 @@ export class GameRenderer {
       const winner = state.players.find(player => player.score >= WIN_SCORE) || state.players[0];
       text(ctx, `${winner.name} 赢得比赛`, WIDTH / 2, 230, 42, '#142434', 'center', 900);
     }
+  }
+
+  drawAimReticle(ctx, player, target, now) {
+    if (!target || target.dead) return;
+    const pulse = 1 + Math.sin(now / 140) * 0.08;
+    ctx.save();
+    ctx.strokeStyle = player.color;
+    ctx.globalAlpha = 0.78;
+    ctx.lineWidth = 2;
+    ctx.translate(target.x, target.y - 50);
+    ctx.scale(pulse, pulse);
+    ctx.beginPath();
+    ctx.arc(0, 0, 34, 0, Math.PI * 2);
+    ctx.moveTo(-44, 0);
+    ctx.lineTo(-28, 0);
+    ctx.moveTo(28, 0);
+    ctx.lineTo(44, 0);
+    ctx.moveTo(0, -44);
+    ctx.lineTo(0, -28);
+    ctx.moveTo(0, 28);
+    ctx.lineTo(0, 44);
+    ctx.stroke();
+    ctx.restore();
+    ctx.globalAlpha = 1;
   }
 
   render(state, focusIds = [0], now = performance.now()) {
@@ -429,9 +693,17 @@ export class GameRenderer {
     ctx.translate(-this.camera.x, -HEIGHT / 2);
     this.drawPlatforms(ctx, map);
     this.drawFinish(ctx, map, now);
+    for (const vehicle of state.vehicles || []) this.drawVehicle(ctx, vehicle);
+    for (const crate of state.crates || []) this.drawCrate(ctx, crate);
     for (const pickup of state.pickups) this.drawPickup(ctx, pickup, now);
     for (const projectile of state.projectiles) this.drawProjectile(ctx, projectile);
     for (const player of state.players) this.drawPlayer(ctx, player, focusIds.includes(player.id), now);
+    for (const player of state.players) {
+      if (focusIds.includes(player.id) && player.weapon && player.targetId >= 0) {
+        this.drawAimReticle(ctx, player, state.players[player.targetId], now);
+      }
+    }
+    this.drawEffects(ctx);
     this.drawParticles(ctx);
     ctx.restore();
     this.drawHUD(ctx, state, map, focusIds);

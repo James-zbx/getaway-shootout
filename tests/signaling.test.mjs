@@ -156,6 +156,13 @@ test('role/kind rules and capability token authorization', async t => {
   assert.deepEqual(response.body, { ok: true });
 });
 
+test('health endpoint identifies a signaling deployment', async t => {
+  const { origin } = await setup(t);
+  const response = await request(origin, `${API}/health`);
+  assert.equal(response.status, 200);
+  assert.deepEqual(response.body, { ok: true });
+});
+
 test('unknown routes, methods, JSON, sizes, codes and cursors fail explicitly', async t => {
   const { origin } = await setup(t);
   let response = await request(origin, '/functions/v1/app/not-a-route');

@@ -1,9 +1,35 @@
 export const STEP = 1 / 60;
 export const WIN_SCORE = 5;
 export const GRAVITY = 1850;
+export const PERSON_HEIGHT = 100;
+export const YARD = 52;
+export const MAX_HP = 100;
+export const PLAYER_WIDTH = 36;
+export const VEHICLE_SIZE = { width: 110, height: 68, topOffset: -52, bottomOffset: 16 };
+export const CRATE_SIZE = { width: 44, height: 30, topOffset: -15, bottomOffset: 15 };
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const approach = (value, target, amount) => value < target ? Math.min(value + amount, target) : Math.max(value - amount, target);
+
+export const WEAPONS = {
+  knife: { ammo: 2, speed: 1350, vertical: 180, gravity: 220, range: 10 * YARD, radius: 6, damage: 60, knockback: 20, cooldown: 0.4, fullFalloff: YARD, zeroFalloff: 10 * YARD },
+  pistol: { ammo: 4, speed: 2600, range: 20 * YARD, radius: 5, damage: 40, knockback: 40, cooldown: 0.18, fullFalloff: YARD, zeroFalloff: 20 * YARD },
+  smg: { ammo: 12, magazines: 4, roundsPerMagazine: 3, speed: 2800, range: 18 * YARD, radius: 4, damage: 15, knockback: 10, cooldown: 0.075, auto: true, fullFalloff: YARD, zeroFalloff: 18 * YARD },
+  shotgun: { ammo: 3, speed: 2250, range: 10 * YARD, radius: 8, damage: 14, headDamage: 20, fullFalloff: YARD, zeroFalloff: 11 * YARD, knockback: 24, pellets: 5, spread: 0.075, cooldown: 0.7 },
+  bomb: { ammo: 1, speed: 900, gravity: 1600, range: 12 * YARD, radius: 7 * YARD, center: 150, fullFalloff: YARD, zeroFalloff: 7 * YARD, knockback: 300, fuse: 2.5, cooldown: 0.8 },
+  rocket: { ammo: 1, speed: 1200, gravity: 150, range: 25 * YARD, radius: 6 * YARD, center: 110, fullFalloff: YARD, zeroFalloff: 6 * YARD, knockback: 500, cooldown: 0.9 },
+  akm: { ammo: 1, speed: 2900, range: 25 * YARD, radius: 6, damage: 500, knockback: 700, cooldown: 0.18, fullFalloff: YARD, zeroFalloff: 25 * YARD },
+  swap: { ammo: 1, speed: 2200, range: 35 * YARD, radius: 7, knockback: 0, cooldown: 0.5 },
+  shield: { ammo: 1, cooldown: 0.5 }
+};
+
+const CRATE_EXPLOSION = { center: 140, radius: 8.5 * YARD, fullFalloff: YARD, zeroFalloff: 8.5 * YARD, knockback: 500 };
+const VEHICLE_EXPLOSION = { center: 200, radius: 16 * YARD, fullFalloff: 4 * YARD, zeroFalloff: 16 * YARD, knockback: 1100 };
+
+const PICKUP_POOL = [
+  ['knife', 8], ['pistol', 13], ['smg', 13], ['shotgun', 12], ['bomb', 10],
+  ['rocket', 9], ['akm', 8], ['swap', 7], ['shield', 11], ['medkit', 9]
+];
 
 export const MAPS = [
   {
@@ -24,13 +50,17 @@ export const MAPS = [
       { x: 1800, y: 430, w: 170, h: 24, type: 'steel' },
       { x: 3230, y: 390, w: 170, h: 24, type: 'steel' }
     ],
-    pickups: [
-      { x: 930, y: 365, type: 'pulse' },
-      { x: 1760, y: 560, type: 'launcher' },
-      { x: 2740, y: 420, type: 'pulse' },
-      { x: 3310, y: 350, type: 'launcher' },
-      { x: 4200, y: 550, type: 'pulse' }
-    ]
+    pickupSpots: [
+      { x: 930, y: 365 }, { x: 1760, y: 560 }, { x: 2740, y: 420 },
+      { x: 3310, y: 350 }, { x: 4200, y: 550 }
+    ],
+    crates: [
+      { x: 1300, y: 505 }, { x: 2900, y: 575 }, { x: 3800, y: 515 }
+    ],
+    vehicles: [
+      { x: 2100, y: 594 }, { x: 3500, y: 574 }
+    ],
+    checkpoints: [100, 850, 1350, 1800, 2400, 2750, 3200, 3800, 4300]
   },
   {
     name: '云端工地',
@@ -53,14 +83,17 @@ export const MAPS = [
       { x: 2750, y: 405, w: 140, h: 24, type: 'steel' },
       { x: 3890, y: 380, w: 150, h: 24, type: 'steel' }
     ],
-    pickups: [
-      { x: 740, y: 380, type: 'pulse' },
-      { x: 1450, y: 400, type: 'launcher' },
-      { x: 1950, y: 350, type: 'pulse' },
-      { x: 2800, y: 365, type: 'launcher' },
-      { x: 3520, y: 390, type: 'pulse' },
-      { x: 4380, y: 550, type: 'launcher' }
-    ]
+    pickupSpots: [
+      { x: 740, y: 380 }, { x: 1450, y: 400 }, { x: 1950, y: 350 },
+      { x: 2800, y: 365 }, { x: 3520, y: 390 }, { x: 4380, y: 550 }
+    ],
+    crates: [
+      { x: 1100, y: 525 }, { x: 2400, y: 485 }, { x: 3200, y: 505 }
+    ],
+    vehicles: [
+      { x: 1800, y: 564 }, { x: 4000, y: 584 }
+    ],
+    checkpoints: [100, 750, 1100, 1450, 1800, 2400, 2800, 3200, 3550, 3950, 4400]
   },
   {
     name: '空港快线',
@@ -82,15 +115,18 @@ export const MAPS = [
       { x: 2450, y: 390, w: 160, h: 24, type: 'steel' },
       { x: 3690, y: 370, w: 160, h: 24, type: 'steel' }
     ],
-    pickups: [
-      { x: 880, y: 325, type: 'launcher' },
-      { x: 1390, y: 560, type: 'pulse' },
-      { x: 2070, y: 380, type: 'pulse' },
-      { x: 2520, y: 350, type: 'launcher' },
-      { x: 3330, y: 370, type: 'pulse' },
-      { x: 3760, y: 330, type: 'launcher' },
-      { x: 4550, y: 550, type: 'pulse' }
-    ]
+    pickupSpots: [
+      { x: 880, y: 325 }, { x: 1390, y: 560 }, { x: 2070, y: 380 },
+      { x: 2520, y: 350 }, { x: 3330, y: 370 }, { x: 3760, y: 330 },
+      { x: 4550, y: 550 }
+    ],
+    crates: [
+      { x: 1700, y: 495 }, { x: 2600, y: 565 }, { x: 3700, y: 545 }
+    ],
+    vehicles: [
+      { x: 2200, y: 564 }, { x: 3900, y: 544 }
+    ],
+    checkpoints: [100, 800, 1300, 1700, 2100, 2500, 3000, 3350, 3750, 4150, 4600]
   }
 ];
 
@@ -106,6 +142,16 @@ function random(state) {
   return state.rngState / 4294967296;
 }
 
+function randomPickupType(state) {
+  const total = PICKUP_POOL.reduce((sum, [, weight]) => sum + weight, 0);
+  let roll = random(state) * total;
+  for (const [type, weight] of PICKUP_POOL) {
+    roll -= weight;
+    if (roll <= 0) return type;
+  }
+  return 'pistol';
+}
+
 function createPlayers(scores = []) {
   return PLAYER_STYLE.map((style, id) => ({
     id,
@@ -119,14 +165,21 @@ function createPlayers(scores = []) {
     angle: 0,
     av: 0,
     facing: 1,
+    aimAngle: 0,
+    targetId: -1,
     grounded: true,
     chargeDir: 0,
     charge: 0,
     weapon: null,
     ammo: 0,
+    hp: MAX_HP,
+    shield: 0,
+    dead: false,
+    respawnTimer: 0,
     stun: 0,
     score: scores[id] || 0,
-    respawnX: 100 + id * 62,
+    checkpointX: 100 + id * 62,
+    fireCooldown: 0,
     prevWeapon: false,
     ai: { cooldown: 0.25 + id * 0.17, releaseIn: 0, fireCooldown: 0 }
   }));
@@ -134,9 +187,14 @@ function createPlayers(scores = []) {
 
 function resetRound(state, preserveScores = true) {
   const scores = preserveScores ? state.players.map(player => player.score) : [];
+  const map = MAPS[state.mapIndex];
   state.players = createPlayers(scores);
+  for (const player of state.players) player.checkpointX = map.checkpoints[0];
   state.projectiles = [];
-  state.pickups = MAPS[state.mapIndex].pickups.map((pickup, id) => ({ ...pickup, id, active: true, respawn: 0 }));
+  state.pickups = map.pickupSpots.map((spot, id) => ({ ...spot, id, type: randomPickupType(state), active: true, respawn: 0 }));
+  state.crates = map.crates.map((crate, id) => ({ ...crate, id, hp: 100, dead: false }));
+  state.vehicles = map.vehicles.map((vehicle, id) => ({ ...vehicle, id, hp: 140, dead: false }));
+  state.pendingExplosions = [];
   state.phase = 'countdown';
   state.phaseTime = 3;
   state.roundWinner = -1;
@@ -145,7 +203,7 @@ function resetRound(state, preserveScores = true) {
 
 export function createGame({ humanCount = 1, seed = Date.now() } = {}) {
   const state = {
-    version: 1,
+    version: 2,
     humanCount,
     rngState: seed >>> 0,
     round: 1,
@@ -157,6 +215,9 @@ export function createGame({ humanCount = 1, seed = Date.now() } = {}) {
     players: [],
     projectiles: [],
     pickups: [],
+    crates: [],
+    vehicles: [],
+    pendingExplosions: [],
     events: [],
     nextProjectileId: 1
   };
@@ -164,25 +225,174 @@ export function createGame({ humanCount = 1, seed = Date.now() } = {}) {
   return state;
 }
 
-function fireWeapon(state, player) {
-  if (!player.weapon || player.ammo <= 0 || player.stun > 0) return;
-  const launcher = player.weapon === 'launcher';
-  const type = player.weapon;
-  const direction = player.facing || 1;
-  state.projectiles.push({
+function knockbackPlayer(player, direction, force) {
+  player.vx = direction * force;
+  player.vy = Math.min(player.vy, -force * 0.42);
+  player.av = direction * clamp(force / 120, 2, 6);
+  player.grounded = false;
+  player.stun = Math.max(player.stun, clamp(force / 900, 0.25, 0.75));
+  player.chargeDir = 0;
+  player.charge = 0;
+}
+
+function killPlayer(state, player, reason) {
+  if (player.dead) return;
+  player.hp = 0;
+  player.dead = true;
+  player.respawnTimer = 1.5;
+  player.weapon = null;
+  player.ammo = 0;
+  player.shield = 0;
+  player.chargeDir = 0;
+  player.charge = 0;
+  player.stun = 0;
+  player.vy = -220;
+  player.grounded = false;
+  state.events.push({ type: 'death', player: player.id, reason, x: player.x, y: player.y - 50 });
+}
+
+function damagePlayer(state, player, amount, direction, force, weapon) {
+  if (player.dead || player.shield > 0 || amount <= 0) return;
+  player.hp = Math.max(0, player.hp - amount);
+  knockbackPlayer(player, direction, force);
+  state.events.push({ type: 'hit', player: player.id, amount: Math.round(amount), weapon, x: player.x, y: player.y - 50 });
+  if (player.hp <= 0) killPlayer(state, player, weapon);
+}
+
+function linearFalloff(base, distance, fullDistance, zeroDistance) {
+  if (!(distance > 0) || distance <= fullDistance) return Math.max(0, base);
+  if (distance >= zeroDistance) return 0;
+  return Math.max(0, base * (zeroDistance - distance) / (zeroDistance - fullDistance));
+}
+
+function shotgunDamage(distance, head) {
+  const weapon = WEAPONS.shotgun;
+  return linearFalloff(head ? weapon.headDamage : weapon.damage, distance, weapon.fullFalloff, weapon.zeroFalloff);
+}
+
+function explosionDamage(center, distance, fullDistance, zeroDistance) {
+  return linearFalloff(center, distance, fullDistance, zeroDistance);
+}
+
+function explode(state, x, y, radius, center, fullDistance, zeroDistance, force, weapon, owner = -1) {
+  state.events.push({ type: 'explosion', x, y, radius, weapon });
+  for (const player of state.players) {
+    if (player.id === owner) continue;
+    const distance = Math.hypot(player.x - x, (player.y - 50) - y);
+    const amount = explosionDamage(center, distance, fullDistance, zeroDistance);
+    if (amount > 0) {
+      const direction = Math.sign(player.x - x) || 1;
+      damagePlayer(state, player, amount, direction, force * (zeroDistance - distance) / zeroDistance, weapon);
+    }
+  }
+  for (const crate of state.crates) {
+    if (crate.dead) continue;
+    const distance = Math.hypot(crate.x - x, crate.y - y);
+    crate.hp -= explosionDamage(center, distance, fullDistance, zeroDistance);
+    if (crate.hp <= 0) {
+      crate.dead = true;
+      state.pendingExplosions.push({ x: crate.x, y: crate.y, type: 'crate', delay: 0.18 });
+    }
+  }
+  for (const vehicle of state.vehicles) {
+    if (vehicle.dead) continue;
+    const distance = Math.hypot(vehicle.x - x, vehicle.y - y);
+    vehicle.hp -= explosionDamage(center, distance, fullDistance, zeroDistance);
+    if (vehicle.hp <= 0) {
+      vehicle.dead = true;
+      state.pendingExplosions.push({ x: vehicle.x, y: vehicle.y, type: 'vehicle', delay: 0.25 });
+    }
+  }
+}
+
+function addProjectile(state, player, weapon, angle, damageOverride) {
+  const definition = WEAPONS[weapon];
+  const speed = definition.speed;
+  const velocityBonus = weapon === 'knife' ? clamp(Math.hypot(player.vx, player.vy) * 0.08, 0, 35) : 0;
+  const projectile = {
     id: state.nextProjectileId++,
     owner: player.id,
-    type,
-    x: player.x + direction * 34,
-    y: player.y - 48,
-    vx: direction * (launcher ? 650 : 980) + player.vx * 0.2,
-    vy: launcher ? -80 : 0,
-    radius: launcher ? 13 : 7,
-    life: launcher ? 2.4 : 1.35
-  });
+    weapon,
+    x: player.x + Math.cos(angle) * 38,
+    y: player.y - 60 + Math.sin(angle) * 20,
+    vx: Math.cos(angle) * speed,
+    vy: Math.sin(angle) * speed,
+    gravity: definition.gravity || 0,
+    distance: 0,
+    range: definition.range || 12 * YARD,
+    radius: definition.radius || 6,
+    damage: damageOverride ?? (definition.damage || 0) + velocityBonus,
+    fullFalloff: definition.fullFalloff || 0,
+    zeroFalloff: definition.zeroFalloff || definition.range || 12 * YARD,
+    headDamage: definition.headDamage,
+    knockback: definition.knockback || 0,
+    fuse: definition.fuse || null,
+    explosive: Boolean(definition.center),
+    life: definition.fuse || (definition.range || 12 * YARD) / speed
+  };
+  state.projectiles.push(projectile);
+  state.events.push({ type: 'shot', player: player.id, weapon, x: projectile.x, y: projectile.y });
+}
+
+function nearestTarget(state, player) {
+  let target = null;
+  let bestDistance = Infinity;
+  for (const other of state.players) {
+    if (other.id === player.id || other.dead) continue;
+    const distance = Math.hypot(other.x - player.x, (other.y - 50) - (player.y - 50));
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      target = other;
+    }
+  }
+  return target;
+}
+
+function updateAim(state, player) {
+  const target = nearestTarget(state, player);
+  player.targetId = target?.id ?? -1;
+  if (!target) {
+    player.aimAngle = player.facing > 0 ? 0 : Math.PI;
+    return;
+  }
+  const muzzleX = player.x;
+  const muzzleY = player.y - 60;
+  const dx = target.x - muzzleX;
+  const dy = (target.y - 50) - muzzleY;
+  player.facing = Math.sign(dx) || player.facing;
+  const definition = player.weapon ? WEAPONS[player.weapon] : null;
+  const baseAngle = Math.atan2(dy, dx);
+  if (!definition?.gravity) {
+    player.aimAngle = baseAngle;
+    return;
+  }
+  const flightTime = Math.max(0.08, Math.hypot(dx, dy) / definition.speed);
+  const upwardCorrection = 0.5 * definition.gravity * flightTime * flightTime;
+  player.aimAngle = Math.atan2(dy - upwardCorrection, dx);
+}
+
+function fireWeapon(state, player) {
+  if (player.dead || !player.weapon || player.ammo <= 0 || player.stun > 0 || player.fireCooldown > 0) return;
+  const definition = WEAPONS[player.weapon];
+  if (player.weapon === 'shield') {
+    player.shield = 5;
+    player.ammo = 0;
+    player.weapon = null;
+    player.fireCooldown = definition.cooldown;
+    state.events.push({ type: 'shield', player: player.id, x: player.x, y: player.y - 50 });
+    return;
+  }
+  const aim = player.aimAngle ?? (player.facing > 0 ? 0 : Math.PI);
+  if (player.weapon === 'shotgun') {
+    for (let index = 0; index < definition.pellets; index += 1) {
+      addProjectile(state, player, 'shotgun', aim + (index - (definition.pellets - 1) / 2) * definition.spread);
+    }
+  } else {
+    addProjectile(state, player, player.weapon, aim);
+  }
   player.ammo -= 1;
   if (player.ammo <= 0) player.weapon = null;
-  state.events.push({ type: 'shot', player: player.id, weapon: type, x: player.x, y: player.y - 48 });
+  player.fireCooldown = definition.cooldown;
 }
 
 function jump(state, player) {
@@ -205,7 +415,7 @@ function jump(state, player) {
 
 function updateControls(player, input, dt) {
   player.prevWeapon = input.weapon;
-  if (player.stun > 0) {
+  if (player.dead || player.stun > 0) {
     player.chargeDir = 0;
     player.charge = 0;
     return;
@@ -232,12 +442,19 @@ function updateAI(state, player, dt) {
   const input = { left: false, right: false, weapon: false };
   const ai = player.ai;
   ai.fireCooldown = Math.max(0, ai.fireCooldown - dt);
-  if (player.stun > 0) return input;
-  if (player.weapon && ai.fireCooldown <= 0) {
-    const target = state.players.find(other => other.id !== player.id && Math.sign(other.x - player.x) === player.facing && Math.abs(other.x - player.x) < 650 && Math.abs(other.y - player.y) < 150);
-    if (target && random(state) < 0.09) {
+  if (player.dead || player.stun > 0) return input;
+  if (player.weapon === 'shield') {
+    if (player.hp < 55 && ai.fireCooldown <= 0) {
       input.weapon = true;
-      ai.fireCooldown = 1.1 + random(state) * 1.2;
+      ai.fireCooldown = 1;
+    }
+  } else if (player.weapon && ai.fireCooldown <= 0) {
+    const definition = WEAPONS[player.weapon];
+    const target = nearestTarget(state, player);
+    const distance = target ? Math.hypot(target.x - player.x, (target.y - 50) - (player.y - 50)) : Infinity;
+    if (target && distance < definition.range * 0.8 && random(state) < (definition.auto ? 0.55 : 0.12)) {
+      input.weapon = true;
+      ai.fireCooldown = definition.auto ? 0.05 : 1.1 + random(state) * 1.2;
     }
   }
   if (!player.grounded) return input;
@@ -261,22 +478,124 @@ function updateAI(state, player, dt) {
   return input;
 }
 
-function landingPlatform(state, player, previousY) {
-  if (player.vy < 0) return null;
-  const platforms = MAPS[state.mapIndex].platforms;
-  let landing = null;
-  for (const platform of platforms) {
-    const withinX = player.x >= platform.x - 10 && player.x <= platform.x + platform.w + 10;
-    const crossed = previousY <= platform.y && player.y >= platform.y;
-    if (withinX && crossed && (!landing || platform.y < landing.y)) landing = platform;
+function solidSurfaces(state) {
+  const surfaces = MAPS[state.mapIndex].platforms.map(platform => ({
+    x: platform.x,
+    w: platform.w,
+    top: platform.y,
+    bottom: platform.y + platform.h
+  }));
+  for (const crate of state.crates) {
+    if (crate.dead) continue;
+    surfaces.push({
+      x: crate.x - CRATE_SIZE.width / 2,
+      w: CRATE_SIZE.width,
+      top: crate.y + CRATE_SIZE.topOffset,
+      bottom: crate.y + CRATE_SIZE.bottomOffset
+    });
   }
-  return landing;
+  for (const vehicle of state.vehicles) {
+    if (vehicle.dead) continue;
+    surfaces.push({
+      x: vehicle.x - VEHICLE_SIZE.width / 2,
+      w: VEHICLE_SIZE.width,
+      top: vehicle.y + VEHICLE_SIZE.topOffset,
+      bottom: vehicle.y + VEHICLE_SIZE.bottomOffset
+    });
+  }
+  return surfaces;
 }
 
-function respawn(state, player) {
-  const platforms = MAPS[state.mapIndex].platforms.filter(platform => platform.w >= 220 && platform.x + platform.w > 0 && platform.x < player.x + 100);
-  const platform = platforms.sort((a, b) => Math.abs((a.x + a.w / 2) - (player.x - 220)) - Math.abs((b.x + b.w / 2) - (player.x - 220)))[0] || MAPS[state.mapIndex].platforms[0];
-  player.x = clamp(player.x - 260, platform.x + 35, platform.x + platform.w - 35);
+function playerBox(player) {
+  const halfWidth = PLAYER_WIDTH / 2;
+  return {
+    left: player.x - halfWidth,
+    right: player.x + halfWidth,
+    top: player.y - PERSON_HEIGHT,
+    bottom: player.y
+  };
+}
+
+function boxOverlaps(box, surface) {
+  return box.left < surface.x + surface.w && box.right > surface.x && box.top < surface.bottom && box.bottom > surface.top;
+}
+
+function movePlayerX(state, player, dx) {
+  if (dx === 0) return;
+  player.x += dx;
+  const halfWidth = PLAYER_WIDTH / 2;
+  for (const surface of solidSurfaces(state)) {
+    if (!boxOverlaps(playerBox(player), surface)) continue;
+    if (dx > 0) {
+      player.x = surface.x - halfWidth;
+      player.vx = Math.min(0, player.vx);
+    } else {
+      player.x = surface.x + surface.w + halfWidth;
+      player.vx = Math.max(0, player.vx);
+    }
+  }
+}
+
+function movePlayerY(state, player, dy, previousY) {
+  if (dy === 0) return null;
+  player.y += dy;
+  let landed = null;
+  for (const surface of solidSurfaces(state)) {
+    if (!boxOverlaps(playerBox(player), surface)) continue;
+    if (dy > 0 && previousY <= surface.top + 4) {
+      player.y = surface.top;
+      player.vy = 0;
+      if (!landed || surface.top < landed.top) landed = surface;
+    } else if (dy < 0 && previousY - PERSON_HEIGHT >= surface.bottom - 4) {
+      player.y = surface.bottom + PERSON_HEIGHT;
+      player.vy = 0;
+    } else {
+      const upwardPenetration = player.y - surface.top;
+      const downwardPenetration = surface.bottom - (player.y - PERSON_HEIGHT);
+      if (upwardPenetration < downwardPenetration) {
+        player.y = surface.top;
+        player.vy = 0;
+        if (!landed || surface.top < landed.top) landed = surface;
+      } else {
+        player.y = surface.bottom + PERSON_HEIGHT;
+        player.vy = 0;
+      }
+    }
+  }
+  return landed;
+}
+
+function supportSurface(state, player) {
+  const box = playerBox(player);
+  return solidSurfaces(state).find(surface => Math.abs(box.bottom - surface.top) < 2 && box.right > surface.x && box.left < surface.x + surface.w);
+}
+
+function platformAt(state, x) {
+  return MAPS[state.mapIndex].platforms.find(platform => x >= platform.x + 35 && x <= platform.x + platform.w - 35) || MAPS[state.mapIndex].platforms[0];
+}
+
+function respawnAtCheckpoint(state, player) {
+  const platform = platformAt(state, player.checkpointX);
+  player.x = clamp(player.checkpointX, platform.x + 35, platform.x + platform.w - 35);
+  player.y = platform.y;
+  player.vx = 0;
+  player.vy = 0;
+  player.av = 0;
+  player.angle = 0;
+  player.grounded = true;
+  player.dead = false;
+  player.respawnTimer = 0;
+  player.hp = MAX_HP;
+  player.shield = 0;
+  player.chargeDir = 0;
+  player.charge = 0;
+  player.stun = 0.5;
+  state.events.push({ type: 'respawn', player: player.id, x: player.x, y: player.y });
+}
+
+function fallRespawn(state, player) {
+  const platform = platformAt(state, player.checkpointX);
+  player.x = clamp(player.checkpointX, platform.x + 35, platform.x + platform.w - 35);
   player.y = platform.y;
   player.vx = 0;
   player.vy = 0;
@@ -289,63 +608,125 @@ function respawn(state, player) {
   state.events.push({ type: 'respawn', player: player.id, x: player.x, y: player.y });
 }
 
+function advanceCheckpoint(state, player) {
+  let latest = MAPS[state.mapIndex].checkpoints[0];
+  for (const checkpoint of MAPS[state.mapIndex].checkpoints) {
+    if (player.x < checkpoint) break;
+    latest = checkpoint;
+  }
+  player.checkpointX = Math.max(player.checkpointX, latest);
+}
+
+function applyLeanSlide(state, player, dt) {
+  const lean = Math.sign(player.angle) || player.chargeDir;
+  if (!lean) return;
+  const bodyEdge = player.x + lean * (PLAYER_WIDTH / 2 + Math.abs(player.angle) * PERSON_HEIGHT * 0.55);
+  const playerTop = player.y - PERSON_HEIGHT;
+  for (const surface of solidSurfaces(state)) {
+    if (playerTop >= surface.bottom - 10 || player.y <= surface.top + 10) continue;
+    const gap = lean > 0 ? surface.x - bodyEdge : bodyEdge - (surface.x + surface.w);
+    if (gap < 28 && gap > -PLAYER_WIDTH) {
+      const slideSpeed = Math.min(160, Math.max(0, (28 - gap) * 5));
+      player.x -= lean * slideSpeed * dt;
+    }
+  }
+}
+
 function updatePlayer(state, player, input, dt) {
+  player.fireCooldown = Math.max(0, player.fireCooldown - dt);
+  player.shield = Math.max(0, player.shield - dt);
+  if (player.dead) {
+    player.respawnTimer -= dt;
+    if (player.respawnTimer <= 0) respawnAtCheckpoint(state, player);
+    return;
+  }
   const wasGrounded = player.grounded;
+  const previousY = player.y;
   player.stun = Math.max(0, player.stun - dt);
-  if (input.weapon && !player.prevWeapon) fireWeapon(state, player);
+  updateAim(state, player);
+  const definition = player.weapon ? WEAPONS[player.weapon] : null;
+  const wantsFire = definition?.auto ? input.weapon : (input.weapon && !player.prevWeapon);
+  if (wantsFire) fireWeapon(state, player);
   updateControls(player, input, dt);
   if (player.grounded && player.chargeDir !== 0) {
     const held = player.chargeDir < 0 ? input.left : input.right;
     if (!held) jump(state, player);
   }
   if (player.grounded) {
+    applyLeanSlide(state, player, dt);
     player.vx = approach(player.vx, 0, 700 * dt);
-    player.x += player.vx * dt;
+    movePlayerX(state, player, player.vx * dt);
     player.vy = 0;
     const targetAngle = player.chargeDir === 0 ? 0 : player.chargeDir * (0.12 + player.charge * 0.72);
-    player.angle = approach(player.angle, targetAngle, 4.5 * dt);
-    player.av = 0;
+    const stiffness = player.chargeDir === 0 ? 22 : 45;
+    const damping = player.chargeDir === 0 ? 5.5 : 9;
+    player.av += ((targetAngle - player.angle) * stiffness - player.av * damping) * dt;
+    player.angle = clamp(player.angle + player.av * dt, -1.2, 1.2);
+    const support = supportSurface(state, player);
+    if (!support) {
+      player.grounded = false;
+      player.vy = 1;
+    } else {
+      advanceCheckpoint(state, player);
+    }
   } else {
-    const previousY = player.y;
     player.vy += GRAVITY * dt;
-    player.x += player.vx * dt;
-    player.y += player.vy * dt;
+    movePlayerX(state, player, player.vx * dt);
     player.angle += player.av * dt;
     player.av *= Math.pow(0.985, dt * 60);
-    const landing = landingPlatform(state, player, previousY);
+    const landing = movePlayerY(state, player, player.vy * dt, previousY);
     if (landing) {
-      player.y = landing.y;
-      player.vy = 0;
       player.grounded = true;
       player.vx *= 0.48;
-      player.angle = clamp(Math.atan2(Math.sin(player.angle), Math.cos(player.angle)), -1.1, 1.1);
-      player.av = 0;
+      player.angle = clamp(player.angle, -1.2, 1.2);
+      player.av *= 0.45;
+      if (Math.abs(player.angle) > 1) player.stun = Math.max(player.stun, 0.3);
       if (wasGrounded === false) state.events.push({ type: 'land', player: player.id, x: player.x, y: player.y });
-      if (landing.w >= 220 && player.x > player.respawnX + 250) player.respawnX = player.x;
+      advanceCheckpoint(state, player);
     }
   }
   player.x = clamp(player.x, 20, MAPS[state.mapIndex].finish + 240);
-  if (player.y > 850) respawn(state, player);
+  if (player.y > 850) fallRespawn(state, player);
 }
 
 function updatePickups(state, dt) {
   for (const pickup of state.pickups) {
     if (!pickup.active) {
       pickup.respawn -= dt;
-      if (pickup.respawn <= 0) pickup.active = true;
+      if (pickup.respawn <= 0) {
+        pickup.active = true;
+        pickup.type = randomPickupType(state);
+      }
       continue;
     }
     for (const player of state.players) {
-      if (Math.abs(player.x - pickup.x) < 38 && Math.abs((player.y - 45) - pickup.y) < 58) {
-        player.weapon = pickup.type;
-        player.ammo = pickup.type === 'launcher' ? 1 : 3;
+      if (player.dead || (pickup.type !== 'medkit' && (player.shield > 0 || player.weapon))) continue;
+      if (Math.abs(player.x - pickup.x) < 38 && Math.abs((player.y - 50) - pickup.y) < 62) {
+        if (pickup.type === 'medkit') {
+          const before = player.hp;
+          player.hp = Math.min(MAX_HP, player.hp * 2 + 90);
+          state.events.push({ type: 'heal', player: player.id, amount: Math.round(player.hp - before), x: pickup.x, y: pickup.y });
+        } else {
+          player.weapon = pickup.type;
+          player.ammo = WEAPONS[pickup.type].ammo;
+          state.events.push({ type: 'pickup', player: player.id, weapon: pickup.type, x: pickup.x, y: pickup.y });
+        }
         pickup.active = false;
         pickup.respawn = 12;
-        state.events.push({ type: 'pickup', player: player.id, weapon: pickup.type, x: pickup.x, y: pickup.y });
         break;
       }
     }
   }
+}
+
+function swapWeapons(state, shooter, target) {
+  const shooterWeapon = shooter.weapon;
+  const shooterAmmo = shooter.ammo;
+  shooter.weapon = target.weapon;
+  shooter.ammo = target.ammo;
+  target.weapon = shooterWeapon;
+  target.ammo = shooterAmmo;
+  state.events.push({ type: 'swap', player: target.id, x: target.x, y: target.y - 50 });
 }
 
 function updateProjectiles(state, dt) {
@@ -353,31 +734,112 @@ function updateProjectiles(state, dt) {
   for (let index = state.projectiles.length - 1; index >= 0; index -= 1) {
     const projectile = state.projectiles[index];
     projectile.life -= dt;
-    projectile.x += projectile.vx * dt;
-    projectile.y += projectile.vy * dt;
-    if (projectile.type === 'launcher') projectile.vy += 260 * dt;
-    let remove = projectile.life <= 0 || projectile.y > 800;
-    for (const player of state.players) {
-      if (remove || player.id === projectile.owner) continue;
-      const distance = Math.hypot(player.x - projectile.x, (player.y - 42) - projectile.y);
-      if (distance < projectile.radius + 29) {
-        const direction = Math.sign(projectile.vx) || 1;
-        const force = projectile.type === 'launcher' ? 930 : 590;
-        player.vx = direction * force;
-        player.vy = -force * 0.55;
-        player.av = direction * 5;
-        player.grounded = false;
-        player.stun = projectile.type === 'launcher' ? 0.75 : 0.4;
-        player.chargeDir = 0;
-        player.charge = 0;
-        state.events.push({ type: 'hit', player: player.id, x: projectile.x, y: projectile.y, weapon: projectile.type });
+    const stepX = projectile.vx * dt;
+    const stepY = projectile.vy * dt;
+    projectile.distance += Math.hypot(stepX, stepY);
+    projectile.x += stepX;
+    projectile.y += stepY;
+    projectile.vy += projectile.gravity * dt;
+    let remove = projectile.life <= 0 || projectile.distance > projectile.range || projectile.y > 800;
+    if (!remove && projectile.explosive && projectile.fuse !== null) {
+      projectile.fuse -= dt;
+      if (projectile.fuse <= 0) {
+        const definition = WEAPONS[projectile.weapon];
+        explode(state, projectile.x, projectile.y, definition.radius, definition.center, definition.fullFalloff, definition.zeroFalloff, definition.knockback, projectile.weapon, projectile.owner);
+        remove = true;
+      }
+    }
+    if (!remove) {
+      for (const player of state.players) {
+        if (remove || player.id === projectile.owner || player.dead) continue;
+        const headY = player.y - 88;
+        const torsoY = player.y - 48;
+        const headHit = Math.hypot(player.x - projectile.x, headY - projectile.y) < projectile.radius + 18;
+        const torsoHit = Math.hypot(player.x - projectile.x, torsoY - projectile.y) < projectile.radius + 30;
+        if (!headHit && !torsoHit) continue;
+        if (projectile.weapon === 'swap') {
+          swapWeapons(state, state.players[projectile.owner], player);
+        } else if (projectile.explosive) {
+          const definition = WEAPONS[projectile.weapon];
+          explode(state, projectile.x, projectile.y, definition.radius, definition.center, definition.fullFalloff, definition.zeroFalloff, definition.knockback, projectile.weapon, projectile.owner);
+        } else {
+          const direction = Math.sign(projectile.vx) || 1;
+          const amount = projectile.weapon === 'shotgun'
+            ? shotgunDamage(projectile.distance, headHit)
+            : linearFalloff(projectile.damage, projectile.distance, projectile.fullFalloff, projectile.zeroFalloff);
+          damagePlayer(state, player, amount, direction, projectile.knockback, projectile.weapon);
+        }
+        remove = true;
+      }
+    }
+    if (!remove) {
+      for (const crate of state.crates) {
+        if (crate.dead || Math.hypot(crate.x - projectile.x, crate.y - projectile.y) > 34) continue;
+        crate.hp -= projectile.damage || 40;
+        if (crate.hp <= 0) {
+          crate.dead = true;
+          state.pendingExplosions.push({ x: crate.x, y: crate.y, type: 'crate', delay: 0.12 });
+        }
+        remove = true;
+      }
+    }
+    if (!remove) {
+      for (const vehicle of state.vehicles) {
+        if (vehicle.dead || Math.hypot(vehicle.x - projectile.x, vehicle.y - projectile.y) > 55) continue;
+        vehicle.hp -= projectile.damage || 40;
+        if (vehicle.hp <= 0) {
+          vehicle.dead = true;
+          state.pendingExplosions.push({ x: vehicle.x, y: vehicle.y, type: 'vehicle', delay: 0.12 });
+        }
         remove = true;
       }
     }
     if (!remove) {
       remove = platforms.some(platform => projectile.x >= platform.x && projectile.x <= platform.x + platform.w && projectile.y >= platform.y && projectile.y <= platform.y + platform.h);
+      if (remove && projectile.explosive) {
+        const definition = WEAPONS[projectile.weapon];
+        explode(state, projectile.x, projectile.y, definition.radius, definition.center, definition.fullFalloff, definition.zeroFalloff, definition.knockback, projectile.weapon, projectile.owner);
+      }
     }
     if (remove) state.projectiles.splice(index, 1);
+  }
+}
+
+function updatePendingExplosions(state, dt) {
+  for (let index = state.pendingExplosions.length - 1; index >= 0; index -= 1) {
+    const pending = state.pendingExplosions[index];
+    pending.delay -= dt;
+    if (pending.delay > 0) continue;
+    state.pendingExplosions.splice(index, 1);
+    if (pending.type === 'crate') explode(state, pending.x, pending.y, CRATE_EXPLOSION.radius, CRATE_EXPLOSION.center, CRATE_EXPLOSION.fullFalloff, CRATE_EXPLOSION.zeroFalloff, CRATE_EXPLOSION.knockback, 'crate');
+    if (pending.type === 'vehicle') explode(state, pending.x, pending.y, VEHICLE_EXPLOSION.radius, VEHICLE_EXPLOSION.center, VEHICLE_EXPLOSION.fullFalloff, VEHICLE_EXPLOSION.zeroFalloff, VEHICLE_EXPLOSION.knockback, 'vehicle');
+  }
+}
+
+function resolvePlayerCollisions(state) {
+  const halfWidth = PLAYER_WIDTH / 2;
+  for (let leftIndex = 0; leftIndex < state.players.length; leftIndex += 1) {
+    const a = state.players[leftIndex];
+    if (a.dead) continue;
+    for (let rightIndex = leftIndex + 1; rightIndex < state.players.length; rightIndex += 1) {
+      const b = state.players[rightIndex];
+      if (b.dead) continue;
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      if (Math.abs(dx) >= PLAYER_WIDTH || Math.abs(dy) >= PERSON_HEIGHT * 0.72) continue;
+      const direction = dx > 0 ? 1 : (dx < 0 ? -1 : (a.id < b.id ? -1 : 1));
+      const overlap = PLAYER_WIDTH - Math.abs(dx);
+      a.x -= direction * overlap / 2;
+      b.x += direction * overlap / 2;
+      const closingSpeed = (a.vx - b.vx) * direction;
+      if (closingSpeed > 0) {
+        const impulse = closingSpeed * 0.32;
+        a.vx -= impulse * direction;
+        b.vx += impulse * direction;
+      }
+      a.x = clamp(a.x, 20, MAPS[state.mapIndex].finish + 240);
+      b.x = clamp(b.x, 20, MAPS[state.mapIndex].finish + 240);
+    }
   }
 }
 
@@ -412,9 +874,11 @@ export function stepGame(state, inputs, dt = STEP) {
     const input = player.id < state.humanCount ? (inputs[player.id] || { left: false, right: false, weapon: false }) : updateAI(state, player, dt);
     updatePlayer(state, player, input, dt);
   }
+  resolvePlayerCollisions(state);
   updatePickups(state, dt);
   updateProjectiles(state, dt);
-  const finisher = state.players.find(player => player.x >= MAPS[state.mapIndex].finish);
+  updatePendingExplosions(state, dt);
+  const finisher = state.players.find(player => !player.dead && player.x >= MAPS[state.mapIndex].finish);
   if (finisher) {
     finisher.score += 1;
     state.roundWinner = finisher.id;
@@ -423,6 +887,8 @@ export function stepGame(state, inputs, dt = STEP) {
     state.events.push({ type: 'roundOver', player: finisher.id, x: finisher.x, y: finisher.y });
   }
 }
+
+export { linearFalloff, shotgunDamage, explosionDamage };
 
 export function makeSnapshot(state) {
   return {
@@ -438,6 +904,9 @@ export function makeSnapshot(state) {
     players: state.players.map(player => ({ ...player, ai: undefined })),
     projectiles: state.projectiles.map(projectile => ({ ...projectile })),
     pickups: state.pickups.map(pickup => ({ ...pickup })),
+    crates: state.crates.map(crate => ({ ...crate })),
+    vehicles: state.vehicles.map(vehicle => ({ ...vehicle })),
+    pendingExplosions: state.pendingExplosions.map(pending => ({ ...pending })),
     events: [],
     nextProjectileId: state.nextProjectileId
   };

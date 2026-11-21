@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#101f2e">
   <meta name="description" content="弹跳突围：两名真人与两名人机同场的原创物理竞速游戏，支持本地单人、双人和在线双人。">
   <title>弹跳突围 · Bounce Breakout</title>
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <div class="app-shell">
@@ -19,6 +19,8 @@
       </a>
       <div class="top-actions">
         <span id="modeBadge" class="mode-badge">演示模式</span>
+        <button id="pauseButton" class="icon-button game-only" type="button" disabled>暂停</button>
+        <button id="menuButton" class="icon-button game-only" type="button" disabled>主菜单</button>
         <button id="muteButton" class="icon-button" type="button" aria-label="关闭声音" title="声音">声音 开</button>
         <button id="fullscreenButton" class="icon-button" type="button" aria-label="全屏游戏" title="全屏">全屏</button>
       </div>
@@ -35,7 +37,7 @@
           <div class="mode-buttons">
             <button class="primary-button" type="button" data-start="single"><span>单人游戏</span><small>你 + 3 名人机</small></button>
             <button class="secondary-button" type="button" data-start="double"><span>本地双人</span><small>2 人 + 2 名人机 · 共用键盘</small></button>
-            <button id="onlineButton" class="secondary-button" type="button"><span>在线双人</span><small>2 人 + 2 名人机 · 各自键盘</small></button>
+            <button id="onlineButton" class="secondary-button hidden" type="button"><span>在线双人</span><small>2 人 + 2 名人机 · 各自键盘</small></button>
           </div>
           <div class="quick-controls">
             <span><kbd>W</kbd> 左偏转</span><span><kbd>E</kbd> 右偏转</span><span><kbd>R</kbd> 武器</span>
@@ -103,6 +105,6 @@
       <div class="objective"><strong>目标</strong><span>率先抵达撤离点，先赢 5 轮获胜</span><kbd>Esc</kbd><small>暂停本地游戏</small></div>
     </footer>
   </div>
-  <script type="module" src="/app.js"></script>
+  <script type="module" src="./app.js"></script>
 </body>
 </html>

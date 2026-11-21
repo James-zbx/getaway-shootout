@@ -1,4 +1,6 @@
 node_modules/
+tools/
+bounce-breakout-handoff.zip
 .qoder/
 functions/_qoder/
 *.qoder.site

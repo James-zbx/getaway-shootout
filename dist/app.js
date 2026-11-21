@@ -29,6 +29,23 @@ let pendingNetworkEvents = [];
 let toastTimer = 0;
 let audioContext = null;
 let muted = false;
+let onlineAvailable = false;
+
+function setOnlineAvailability(available) {
+  onlineAvailable = Boolean(available);
+  $('#onlineButton').classList.toggle('hidden', !onlineAvailable);
+  if (!onlineAvailable) {
+    $('#createRoomButton').disabled = true;
+    $('#joinRoomButton').disabled = true;
+  }
+}
+
+function detectOnlineAvailability() {
+  return fetch('/functions/v1/app/api/health', { credentials: 'same-origin' })
+    .then(response => response.ok ? response.json() : null)
+    .then(result => setOnlineAvailability(result?.ok === true))
+    .catch(() => setOnlineAvailability(false));
+}
 
 function showPanel(selector) {
   for (const panel of panels) $(panel).classList.toggle('hidden', panel !== selector);
@@ -70,8 +87,16 @@ function playEvents(events) {
     if (event.type === 'jump') tone(150 + event.power * 100, 0.1, 'square', 0.025, 260 + event.power * 160);
     if (event.type === 'land') tone(90, 0.05, 'triangle', 0.018, 55);
     if (event.type === 'pickup') tone(520, 0.14, 'sine', 0.04, 900);
-    if (event.type === 'shot') tone(event.weapon === 'launcher' ? 110 : 280, 0.12, 'sawtooth', 0.035, 55);
+    if (event.type === 'shot') {
+      const low = event.weapon === 'rocket' || event.weapon === 'bomb';
+      tone(low ? 110 : event.weapon === 'shotgun' ? 170 : event.weapon === 'akm' ? 190 : 280, 0.12, 'sawtooth', 0.035, low ? 55 : 95);
+    }
     if (event.type === 'hit') tone(80, 0.18, 'square', 0.045, 35);
+    if (event.type === 'explosion') tone(55, 0.45, 'sawtooth', 0.055, 25);
+    if (event.type === 'death') tone(220, 0.55, 'triangle', 0.035, 55);
+    if (event.type === 'heal') tone(390, 0.22, 'sine', 0.035, 760);
+    if (event.type === 'shield') tone(520, 0.28, 'sine', 0.035, 980);
+    if (event.type === 'swap') tone(660, 0.16, 'square', 0.028, 330);
     if (event.type === 'respawn') tone(230, 0.18, 'sine', 0.025, 90);
     if (event.type === 'roundOver') {
       tone(440, 0.2, 'square', 0.035, 660);
@@ -94,6 +119,14 @@ async function closeSession() {
   if (current) await current.close();
 }
 
+function updateTopControls() {
+  const inGame = screen === 'game';
+  document.querySelector('.app-shell').classList.toggle('in-game', inGame);
+  $('#pauseButton').disabled = !inGame || resultShown;
+  $('#menuButton').disabled = !inGame;
+  $('#pauseButton').textContent = paused || onlineMenuOpen ? '继续' : mode === 'online' ? '菜单' : '暂停';
+}
+
 function showMenu() {
   closeSession();
   mode = 'demo';
@@ -105,6 +138,7 @@ function showMenu() {
   newAttractGame();
   showPanel('#mainMenu');
   $('#modeBadge').textContent = '演示模式';
+  updateTopControls();
   window.history.replaceState({}, '', window.location.pathname);
 }
 
@@ -118,6 +152,7 @@ function showOnline(errorMessage = '') {
   $('#modeBadge').textContent = '在线双人';
   $('#createRoomButton').disabled = false;
   $('#joinRoomButton').disabled = false;
+  updateTopControls();
 }
 
 function startLocal(localMode) {
@@ -135,6 +170,7 @@ function startLocal(localMode) {
   hidePanels();
   $('#modeBadge').textContent = localMode === 'single' ? '单人 · 3 名人机' : '本地双人 · 2 名人机';
   $('#p2Controls').classList.toggle('hidden', localMode === 'single');
+  updateTopControls();
 }
 
 function resetOnlineGame(isHost) {
@@ -153,6 +189,7 @@ function resetOnlineGame(isHost) {
   hidePanels();
   $('#modeBadge').textContent = isHost ? '在线 · 你是 P1' : '在线 · 你是 P2';
   $('#p2Controls').classList.remove('hidden');
+  updateTopControls();
 }
 
 function startOnlineHost() {
@@ -334,6 +371,7 @@ function showResult() {
   $('#resultScores').textContent = game.players.map(player => `${player.id < 2 ? `P${player.id + 1}` : 'CPU'} · ${player.name}    ${player.score} / ${WIN_SCORE}`).join('\n');
   $('#playAgainButton').classList.toggle('hidden', mode === 'online' && onlineRole === 'guest');
   showPanel('#resultPanel');
+  updateTopControls();
 }
 
 function restartGame() {
@@ -349,6 +387,7 @@ function restartGame() {
     remoteInput = emptyInput();
     session?.send({ type: 'start', state: makeSnapshot(game) });
   }
+  updateTopControls();
 }
 
 function togglePause() {
@@ -369,6 +408,7 @@ function togglePause() {
     $('#restartButton').classList.remove('hidden');
     showPanel('#pausePanel');
   } else hidePanels();
+  updateTopControls();
 }
 
 function advanceGame() {
@@ -411,7 +451,7 @@ function frame(now) {
 for (const button of document.querySelectorAll('[data-start]')) button.addEventListener('click', () => startLocal(button.dataset.start));
 for (const button of document.querySelectorAll('[data-menu]')) button.addEventListener('click', showMenu);
 for (const button of document.querySelectorAll('[data-back]')) button.addEventListener('click', showMenu);
-$('#onlineButton').addEventListener('click', () => showOnline());
+$('#onlineButton').addEventListener('click', () => { if (onlineAvailable) showOnline(); });
 $('#createRoomButton').addEventListener('click', createRoom);
 $('#joinRoomButton').addEventListener('click', joinRoom);
 $('#roomInput').addEventListener('input', event => { event.target.value = normalizeRoomCode(event.target.value); });
@@ -422,6 +462,8 @@ $('#roomCodeButton').addEventListener('click', () => copyText($('#roomCodeButton
 $('#resumeButton').addEventListener('click', togglePause);
 $('#restartButton').addEventListener('click', restartGame);
 $('#playAgainButton').addEventListener('click', restartGame);
+$('#pauseButton').addEventListener('click', togglePause);
+$('#menuButton').addEventListener('click', showMenu);
 $('#muteButton').addEventListener('click', () => {
   ensureAudio();
   muted = !muted;
@@ -459,9 +501,12 @@ window.addEventListener('blur', () => keys.clear());
 window.addEventListener('beforeunload', () => { session?.close(); });
 
 const invitedRoom = normalizeRoomCode(new URLSearchParams(window.location.search).get('room'));
-if (invitedRoom) {
-  $('#roomInput').value = invitedRoom;
-  showOnline('已填入邀请房间码，点击“加入”开始连接');
-}
+detectOnlineAvailability().then(() => {
+  if (invitedRoom && onlineAvailable) {
+    $('#roomInput').value = invitedRoom;
+    showOnline('已填入邀请房间码，点击“加入”开始连接');
+  }
+});
+updateTopControls();
 setInterval(advanceGame, 16);
 requestAnimationFrame(frame);
