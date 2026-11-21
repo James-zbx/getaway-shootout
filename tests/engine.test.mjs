@@ -18,7 +18,7 @@ import {
   PERSON_HEIGHT,
   CRATE_SIZE,
   VEHICLE_SIZE
-} from '../dist/engine.js';
+} from '../docs/engine.js';
 
 const neutral = { left: false, right: false, weapon: false };
 const racing = () => {

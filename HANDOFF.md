@@ -146,7 +146,7 @@ POST /functions/v1/app/api/rooms/{code}/close
 ## 文件结构
 
 ```text
-dist/
+docs/
   index.html             页面结构和菜单
   styles.css             界面样式
   app.js                 模式、输入、游戏循环、联机流程

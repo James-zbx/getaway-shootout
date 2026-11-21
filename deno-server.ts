@@ -43,7 +43,7 @@ const MIME_TYPES: Record<string, string> = {
 };
 
 const PATH_SEPARATOR = Deno.build.os === 'windows' ? '\\' : '/';
-const DIST_ROOT = await Deno.realPath(new URL('./dist/', import.meta.url));
+const DIST_ROOT = await Deno.realPath(new URL('./docs/', import.meta.url));
 const kv = await Deno.openKv();
 const store = createDenoKvStore({ kv, BackendError: DenoBackendError });
 const handleSignaling = createSignalingApplication({
@@ -118,7 +118,7 @@ async function serveStatic(request: Request, pathname: string): Promise<Response
       return staticText(403, 'Forbidden', request.method);
     }
 
-    // Resolve the final path too, so a symlink inside dist cannot expose a
+    // Resolve the final path too, so a symlink inside docs cannot expose a
     // file outside the static root. Query parameters never enter this path.
     filename = await Deno.realPath(filename);
     if (!inside(DIST_ROOT, filename)) {

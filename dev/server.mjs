@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { BODY_LIMIT, createSignalingApplication } from '../functions/signaling-core.mjs';
 
 const PROJECT_ROOT = fileURLToPath(new URL('../', import.meta.url));
-const DEFAULT_DIST = resolve(PROJECT_ROOT, 'dist');
+const DEFAULT_DIST = resolve(PROJECT_ROOT, 'docs');
 
 const MIME_TYPES = {
   '.css': 'text/css; charset=utf-8',
@@ -321,7 +321,7 @@ if (isMain) {
   try {
     const running = await startDevServer();
     console.log(`WebRTC signaling dev server: ${running.origin}`);
-    console.log(`Static directory: ${dirname(fileURLToPath(import.meta.url))}/../dist`);
+    console.log(`Static directory: ${dirname(fileURLToPath(import.meta.url))}/../docs`);
     const stop = async () => {
       await running.close();
       process.exitCode = 0;
