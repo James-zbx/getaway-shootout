@@ -531,6 +531,19 @@ test('a player trapped against an obstacle is pushed clear instead of remaining 
   assert.ok(player.x < before);
 });
 
+test('next round starts in reverse order of the previous round ranking', () => {
+  const state = racing();
+  state.players[0].x = MAPS[0].finish;
+  state.players[1].x = 400;
+  state.players[2].x = 300;
+  state.players[3].x = 200;
+  stepGame(state, [neutral], STEP);
+  assert.deepEqual(state.spawnOrder, [3, 2, 1, 0]);
+  state.phaseTime = 0.001;
+  stepGame(state, [neutral], STEP);
+  assert.deepEqual(state.players.map(player => player.x), [286, 224, 162, 100]);
+});
+
 test('snapshot interpolation smooths positions', () => {
   const before = makeSnapshot(racing());
   const after = makeSnapshot(racing());

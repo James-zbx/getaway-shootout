@@ -152,13 +152,19 @@ function randomPickupType(state) {
   return 'pistol';
 }
 
-function createPlayers(scores = []) {
-  return PLAYER_STYLE.map((style, id) => ({
+function createPlayers(scores = [], spawnOrder = [0, 1, 2, 3]) {
+  const validOrder = spawnOrder.length === 4 && spawnOrder.every((id, index) => id >= 0 && id < 4 && spawnOrder.indexOf(id) === index)
+    ? spawnOrder
+    : [0, 1, 2, 3];
+  return PLAYER_STYLE.map((style, id) => {
+    const slot = validOrder.indexOf(id);
+    const startX = 100 + slot * 62;
+    return {
     id,
     name: style.name,
     color: style.color,
     accent: style.accent,
-    x: 100 + id * 62,
+    x: startX,
     y: 620,
     vx: 0,
     vy: 0,
@@ -178,20 +184,21 @@ function createPlayers(scores = []) {
     respawnTimer: 0,
     stun: 0,
     blockTimer: 0,
-    lastBlockCheckX: 100 + id * 62,
+    lastBlockCheckX: startX,
     lastBlockCheckTime: 0,
     score: scores[id] || 0,
-    checkpointX: 100 + id * 62,
+    checkpointX: startX,
     fireCooldown: 0,
     prevWeapon: false,
     ai: { cooldown: 0.25 + id * 0.17, releaseIn: 0, fireCooldown: 0 }
-  }));
+    };
+  });
 }
 
 function resetRound(state, preserveScores = true) {
   const scores = preserveScores ? state.players.map(player => player.score) : [];
   const map = MAPS[state.mapIndex];
-  state.players = createPlayers(scores);
+  state.players = createPlayers(scores, state.spawnOrder);
   for (const player of state.players) player.checkpointX = map.checkpoints[0];
   state.projectiles = [];
   state.pickups = map.pickupSpots.map((spot, id) => ({ ...spot, id, type: randomPickupType(state), active: true, respawn: 0 }));
@@ -214,6 +221,7 @@ export function createGame({ humanCount = 1, seed = Date.now() } = {}) {
     phase: 'countdown',
     phaseTime: 3,
     roundWinner: -1,
+    spawnOrder: [0, 1, 2, 3],
     elapsed: 0,
     players: [],
     projectiles: [],
@@ -941,6 +949,10 @@ export function stepGame(state, inputs, dt = STEP) {
   if (finisher) {
     finisher.score += 1;
     state.roundWinner = finisher.id;
+    state.spawnOrder = state.players
+      .map(player => player.id)
+      .sort((a, b) => state.players[b].x - state.players[a].x)
+      .reverse();
     state.phase = 'roundOver';
     state.phaseTime = 3;
     state.events.push({ type: 'roundOver', player: finisher.id, x: finisher.x, y: finisher.y });
@@ -959,6 +971,7 @@ export function makeSnapshot(state) {
     phase: state.phase,
     phaseTime: state.phaseTime,
     roundWinner: state.roundWinner,
+    spawnOrder: [...state.spawnOrder],
     elapsed: state.elapsed,
     players: state.players.map(player => ({ ...player, ai: undefined })),
     projectiles: state.projectiles.map(projectile => ({ ...projectile })),
