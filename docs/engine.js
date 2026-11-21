@@ -5,7 +5,7 @@ export const PERSON_HEIGHT = 100;
 export const YARD = 52;
 export const MAX_HP = 100;
 export const PLAYER_WIDTH = 36;
-export const VEHICLE_SIZE = { width: 110, height: 68, topOffset: -52, bottomOffset: 16 };
+export const VEHICLE_SIZE = { width: 110, height: 42, topOffset: -26, bottomOffset: 16 };
 export const CRATE_SIZE = { width: 44, height: 30, topOffset: -15, bottomOffset: 15 };
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -177,6 +177,9 @@ function createPlayers(scores = []) {
     dead: false,
     respawnTimer: 0,
     stun: 0,
+    blockTimer: 0,
+    lastBlockCheckX: 100 + id * 62,
+    lastBlockCheckTime: 0,
     score: scores[id] || 0,
     checkpointX: 100 + id * 62,
     fireCooldown: 0,
@@ -246,6 +249,7 @@ function killPlayer(state, player, reason) {
   player.chargeDir = 0;
   player.charge = 0;
   player.stun = 0;
+  player.blockTimer = 0;
   player.vy = -220;
   player.grounded = false;
   state.events.push({ type: 'death', player: player.id, reason, x: player.x, y: player.y - 50 });
@@ -410,6 +414,7 @@ function jump(state, player) {
   player.y -= 2;
   player.chargeDir = 0;
   player.charge = 0;
+  player.blockTimer = 0;
   state.events.push({ type: 'jump', player: player.id, power, x: player.x, y: player.y });
 }
 
@@ -590,6 +595,7 @@ function respawnAtCheckpoint(state, player) {
   player.chargeDir = 0;
   player.charge = 0;
   player.stun = 0.5;
+  player.blockTimer = 0;
   state.events.push({ type: 'respawn', player: player.id, x: player.x, y: player.y });
 }
 
@@ -605,6 +611,7 @@ function fallRespawn(state, player) {
   player.chargeDir = 0;
   player.charge = 0;
   player.stun = 0.8;
+  player.blockTimer = 0;
   state.events.push({ type: 'respawn', player: player.id, x: player.x, y: player.y });
 }
 
@@ -629,6 +636,57 @@ function applyLeanSlide(state, player, dt) {
       const slideSpeed = Math.min(160, Math.max(0, (28 - gap) * 5));
       player.x -= lean * slideSpeed * dt;
     }
+  }
+}
+
+function nearestBlockingSurface(state, player) {
+  const halfWidth = PLAYER_WIDTH / 2;
+  const box = playerBox(player);
+  let nearest = null;
+  let bestDistance = Infinity;
+  for (const surface of solidSurfaces(state)) {
+    if (box.top >= surface.bottom - 6 || box.bottom <= surface.top + 6) continue;
+    const rightGap = surface.x - (player.x + halfWidth);
+    const leftGap = (player.x - halfWidth) - (surface.x + surface.w);
+    let distance;
+    let direction;
+    if (rightGap >= 0 && rightGap < 45) {
+      distance = rightGap;
+      direction = -1;
+    } else if (leftGap >= 0 && leftGap < 45) {
+      distance = leftGap;
+      direction = 1;
+    } else {
+      continue;
+    }
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      nearest = { direction, distance };
+    }
+  }
+  return nearest;
+}
+
+function updateStuckDetection(state, player, input, dt) {
+  const tryingToMove = Boolean(input.left || input.right) || Math.abs(player.vx) > 20;
+  if (!player.grounded || !tryingToMove) {
+    player.blockTimer = 0;
+    player.lastBlockCheckX = player.x;
+    return;
+  }
+  player.blockTimer += dt;
+  if (player.blockTimer < 2) return;
+  const escape = nearestBlockingSurface(state, player);
+  if (escape) {
+    player.x += escape.direction * Math.max(28, 45 - escape.distance);
+    player.x = clamp(player.x, 20, MAPS[state.mapIndex].finish + 240);
+    player.vx = 0;
+    player.blockTimer = 0;
+    state.events.push({ type: 'unstuck', player: player.id, x: player.x, y: player.y });
+  }
+  if (player.blockTimer > 0 && !escape && player.blockTimer > 4) {
+    respawnAtCheckpoint(state, player);
+    player.blockTimer = 0;
   }
 }
 
@@ -685,6 +743,7 @@ function updatePlayer(state, player, input, dt) {
       advanceCheckpoint(state, player);
     }
   }
+  updateStuckDetection(state, player, input, dt);
   player.x = clamp(player.x, 20, MAPS[state.mapIndex].finish + 240);
   if (player.y > 850) fallRespawn(state, player);
 }

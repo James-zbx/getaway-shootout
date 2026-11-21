@@ -509,6 +509,28 @@ test('leaning toward an obstacle gently slides the player away', () => {
   assert.ok(before - player.x < 5);
 });
 
+test('vehicles are low enough to leave clearance under overhead platforms', () => {
+  assert.ok(VEHICLE_SIZE.height < PERSON_HEIGHT / 2);
+});
+
+test('a player trapped against an obstacle is pushed clear instead of remaining stuck', () => {
+  const state = racing();
+  const player = state.players[0];
+  const vehicle = state.vehicles[0];
+  for (const other of state.players.slice(1)) {
+    other.x = 3000;
+    other.ai = { cooldown: 100, releaseIn: 0, fireCooldown: 100 };
+  }
+  player.x = vehicle.x - VEHICLE_SIZE.width / 2 - PLAYER_WIDTH / 2 - 10;
+  player.y = vehicle.y - 10;
+  player.grounded = true;
+  player.vx = 0;
+  const before = player.x;
+  const holdingRight = { left: false, right: true, weapon: false };
+  for (let index = 0; index < 140; index += 1) stepGame(state, [holdingRight], STEP);
+  assert.ok(player.x < before);
+});
+
 test('snapshot interpolation smooths positions', () => {
   const before = makeSnapshot(racing());
   const after = makeSnapshot(racing());
