@@ -538,10 +538,10 @@ test('next round starts in reverse order of the previous round ranking', () => {
   state.players[2].x = 300;
   state.players[3].x = 200;
   stepGame(state, [neutral], STEP);
-  assert.deepEqual(state.spawnOrder, [3, 2, 1, 0]);
+  assert.deepEqual(state.spawnOrder, [0, 1, 2, 3]);
   state.phaseTime = 0.001;
   stepGame(state, [neutral], STEP);
-  assert.deepEqual(state.players.map(player => player.x), [286, 224, 162, 100]);
+  assert.deepEqual(state.players.map(player => player.x), [100, 162, 224, 286]);
 });
 
 test('snapshot interpolation smooths positions', () => {

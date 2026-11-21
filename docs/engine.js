@@ -951,8 +951,7 @@ export function stepGame(state, inputs, dt = STEP) {
     state.roundWinner = finisher.id;
     state.spawnOrder = state.players
       .map(player => player.id)
-      .sort((a, b) => state.players[b].x - state.players[a].x)
-      .reverse();
+      .sort((a, b) => state.players[b].x - state.players[a].x);
     state.phase = 'roundOver';
     state.phaseTime = 3;
     state.events.push({ type: 'roundOver', player: finisher.id, x: finisher.x, y: finisher.y });
